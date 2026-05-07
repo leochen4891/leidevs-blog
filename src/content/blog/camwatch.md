@@ -5,8 +5,6 @@ pubDate: '2026-05-06'
 heroImage: ../../assets/camwatch-dashboard.png
 ---
 
-> A residential speed-camera that runs on a MacBook Air, watches my street, classifies every passing car, and serves a dashboard. About two calendar days, ~10 hours hands-on, with Claude Code doing long stretches of work unattended.
->
 > Code: [github.com/leochen4891/camwatch](https://github.com/leochen4891/camwatch)<br>
 > Live: [camwatch.leidevs.com](https://camwatch.leidevs.com/) (Cloudflare Access)
 
@@ -14,36 +12,36 @@ heroImage: ../../assets/camwatch-dashboard.png
 
 Some drivers go faster than I'd like on our residential street. The town's portable speed-display trailer didn't help much. A few drivers, and a couple of kids on bikes, started treating it as a high-score game. I just wanted real numbers: which times of day are worst, which days of the week, ideally a per-vehicle log so I could see whether it was a few repeat offenders or a steady drip.
 
-The bill of materials was always in the closet: a Reolink E1 Outdoor on the corner of the house, an old MacBook Air, an RTSP stream. The bill of *learning* was what kept stalling me: RTSP transports, H.264, FFmpeg, OpenCV, an object detector and tracker, a web UI, packaging the whole thing as a service. Doable on paper, but not against everything else competing for evenings.
+The bill of materials was always in the closet: a Reolink E1 Outdoor on the corner of the house, a MacBook Air. The bill of *learning* was what kept stalling me: RTSP transports, H.264, FFmpeg, OpenCV, an object detector and tracker, a web UI, packaging the whole thing as a service. Doable on paper, but not against everything else competing for evenings.
 
-What changed isn't that I got smarter. The cost of crossing an unfamiliar stack collapsed. With Claude Code I could ask "what cameras are on my LAN?" and have a working RTSP preview on screen before I'd finished my coffee. The wall I'd been bouncing off for five years wasn't the work, it was the activation energy.
+The cost of crossing an unfamiliar stack collapsed. With Claude Code I could ask one question and have a working RTSP preview on screen before I'd finished my coffee. The wall I'd been bouncing off for five years wasn't the work, it was the activation energy.
 
 Two calendar days later, with maybe ten hours of my own attention spread across them and Claude Code working on its own in between, CamWatch is live.
 
 ## The stack, for the curious
 
-- **Backend:** Python with `uv`, FastAPI, Jinja2, [HTMX](https://htmx.org/). Live preview via MJPEG.
+- **Hardware:** MacBook Air M3, Reolink E1 Outdoor
+- **Frontend:** Jinja2 server-rendered templates + [HTMX](https://htmx.org/) for interactivity. Vanilla CSS, no JS framework, no build step. Live preview via MJPEG.
+- **Backend:** Python with `uv`, FastAPI.
 - **Vision:** [ultralytics](https://github.com/ultralytics/ultralytics) YOLO11-nano on Apple Silicon (`mps`), with [BotSORT](https://github.com/NirAharon/BoT-SORT) for tracking.
 - **Capture:** OpenCV over RTSP/TCP.
 - **Storage:** SQLite, YAML for calibration, MP4 clips on disk.
 - **Service:** macOS `launchd`, Cloudflare Tunnel via `cloudflared`.
 
-The whole thing fits comfortably on the laptop in the basement.
-
 ## The hard part is timing, not detection
 
-The first hour was anticlimactic in a good way: an `nmap` sweep found the camera's IP, Claude Code wired up an RTSP reader, dropped two virtual lines across the road, and "speed of car between line A and line B" was working in a browser. That covered the easy 80%. The remaining 20% is where the post is actually worth reading.
+The first hour was anticlimactic in a good way: Claude Code wired up an RTSP reader, asked me to draw two virtual lines across the road, and "speed of car between line A and line B" was working in a browser. That covered the easy 80%. The remaining 20% is what this post is about.
 
 ### Problem 1: the laptop can't keep up with the mainstream
 
-The Reolink exposes two streams:
+The Reolink exposes two streams by default:
 
 | Stream | Resolution | FPS |
 |---|---|---|
 | main `/h264Preview_01_main` | 2560 × 1920 | 20 |
 | sub  `/h264Preview_01_sub`  | 640 × 480   | 15 |
 
-The first instinct was "use the high-res stream for everything." On the MacBook Air, YOLO at 2560×1920 fell behind, frames stacked, and effective throughput sagged below the rate cars actually need to be timed at. Switching detection to the substream solved it: lower resolution, every frame processed at a clean 15 fps, tighter timing.
+The first instinct was "use the high-res stream for everything." On the MacBook Air though, decoding and detection at 2560×1920 fell behind, frames stacked, and effective throughput sagged below the rate cars actually need to be timed at. Switching detection to the substream solved it: lower resolution, every frame processed at a clean 15 fps, tighter timing.
 
 This was also the cleanest "no, let's not" moment I had with Claude Code. The first plan was to keep both streams in the loop. I cut it back to: *"hold on. let's not use main stream, just only use the sub stream."* Detection accuracy didn't actually need 5 megapixels.
 
@@ -55,18 +53,22 @@ The bug, after some digging, was timestamping. Each frame was being marked with 
 
 The fix is the kind of thing that's "obvious" only after you've gone the wrong way once: ignore the laptop clock entirely and use the **PTS** (presentation timestamp) attached to each frame inside the H.264 stream itself. That's the camera's ground truth for when a frame was captured. Speeds snapped back to numbers that matched what I was actually seeing out the window.
 
-The prompt that broke us out of "wall-clock vs. measurement noise" was just: *"can we try both frame timestamp and burn-in time to see which one is better?"* That comparison made it obvious where the truth was.
+A clarification about how this got found: I knew the speed reading was wrong and I knew of one possible fix which is the camera's burned-in OSD timestamp. I'd never heard of PTS; Claude surfaced it when I described the symptom. Once I had two candidate timing sources on the table, my actual prompt was just: "can we try both frame timestamp and burn-in time to see which one is better?"
+
+Claude wrote the diagnostic (scripts/timing_probe.py) that logged per-frame monotonic_dt, pts_dt, and OSD-derived dt side by side. The output made the answer obvious: monotonic std=48ms, PTS std=0ms. I didn't have to design the experiment or know which library exposed PTS. I just had to ask the comparison question.
+
+This is the pattern I want to highlight: I delegated the option-space exploration to AI. Later, when I wanted to know whether other timing sources existed (RTCP-SR sender reports, ONVIF metadata streams, PyAV's start_time_realtime), I explicitly asked for a sub-agent to go research and report back. 10 minutes of parallel investigation that would have taken me several days reading specs and skimming GitHub issues.
 
 ### Problem 3: the two streams are not frame-synchronized
 
 This was the one that almost beat us. The plan: detect on the cheap substream, but pull the snapshot thumbnail from the high-res mainstream so the dashboard looks good.
 
-Simple in theory. In practice the streams are completely independent. The substream stays current at a clean 15 fps. The mainstream, in the same setup, often runs at ~3.5 fps because the laptop is constantly draining its backlog. Lag between them was sometimes **7–22 seconds** and not stable. When we asked the mainstream "give me the frame matching this detection's timestamp," we'd get a frame with no car in it.
+Simple in theory. In practice the streams are completely independent. The substream stays current at a clean 15 fps. The mainstream, in the same setup, sometimes runs at ~3.5 fps because the laptop is draining its backlog. Lag between them was sometimes **7-22 seconds** and not stable. When we asked the mainstream "give me the frame matching this detection's timestamp," we'd get a frame with no car in it.
 
 What didn't work:
 
 - **Aligning by PTS directly.** PTS is per-RTSP-connection. The substream and mainstream PTS clocks reset independently, so a PTS value on one means nothing on the other.
-- **Lowering the camera's I-frame interval / GOP.** Claude Code suggested this; on this model, the Reolink web UI just doesn't expose that setting. We lowered resolution and frame rate from the UI, but the long-GOP gap on the mainstream stayed a known limitation.
+- **Lowering the camera's I-frame interval / GOP.** Claude Code suggested this; on this camera model, it just doesn't expose that setting. We lowered resolution and frame rate from the UI, but the long-GOP gap on the mainstream stayed a known limitation.
 - **Reolink's HTTP `/cgi-bin/api.cgi?cmd=Snap` snapshot endpoint.** Too slow for our cadence.
 - **ONVIF metadata streams and RTCP Sender Reports.** Often used for cross-stream clock alignment in the IP camera world. We dispatched sub-agents to investigate. ONVIF's `GetMetadataConfigurations` returned empty SOAP faults on this camera. RTCP traces showed our side sending Receiver Reports every ~5 s but no Sender Reports coming back. *"Closing the book on the PyAV/RTCP/ONVIF investigation, neither path was promising for this camera."*
 
@@ -80,9 +82,9 @@ The OCR itself was its own rabbit hole. Tesseract failed on the ~10-pixel digits
 
 ## The part where the AI almost gave up
 
-Somewhere in the middle of problem 3, after enough failed attempts, Claude Code started hedging toward "the camera might just be dropping mainstream frames, this could be a hardware limitation." If I'd accepted that framing, the project would have ended with a working-but-ugly substream-thumbnail UI.
+Somewhere in the middle of problem 3, after enough failed attempts, Claude Code started hedging toward "We can't find the main frame because the camera might just be dropping them, this could be a hardware limitation." If I'd accepted that framing, the project would have ended with a working-but-ugly substream-thumbnail UI.
 
-I'd been watching the mainstream from another device for years. There were no dropouts on the camera side. If frames were missing, they were missing on *our* consumer side, and that meant we hadn't actually identified the bug yet. The prompts that broke us out of that loop:
+I'd been watching the mainstream from another device from time to time. There were no dropouts on the camera side. If frames were missing, they were missing on *our* consumer side, and that meant we hadn't actually identified the bug yet. The prompts that broke us out of that loop:
 
 > "wait, let's rethink about the approach."
 >
@@ -100,7 +102,7 @@ Once the service was stable, I wanted it on my phone from the front yard, not ju
 2. **Cloudflare Tunnel + Access.** Public hostname, zero ports open, identity-gated.
 3. **Port forwarding.** No.
 
-Tailscale was the right answer for me-on-my-phone. But I wanted a real URL I could share. So I bought `leidevs.com`, pointed it at Cloudflare, and let Claude walk me through the tunnel + Access setup. Half an hour later, CamWatch was live at [camwatch.leidevs.com](https://camwatch.leidevs.com/) behind an email-code login.
+Tailscale was the right answer for me-on-my-phone. After setting it up and playing for a day, I wanted a real URL I could share. So I bought `leidevs.com`, pointed it at Cloudflare, and let Claude walk me through the tunnel + Access setup. Half an hour later, CamWatch was live at [camwatch.leidevs.com](https://camwatch.leidevs.com/) behind an email-code login.
 
 ## A note on how this was actually built
 
