@@ -116,7 +116,7 @@ Tailscale was the right answer for me-on-my-phone. After setting it up and playi
 
 Three things I'm taking away from this:
 
-1. **Coding is solved.** Or, as Boris Cherny put it, ["coding is solved"](https://www.youtube.com/watch?v=SlGRN8jh2RI). Maybe not 100% yet, but quickly approaching for most cases.
+1. **Coding is solved.** Or, as Boris Cherny put it, ["coding is solved"](https://www.youtube.com/watch?v=SlGRN8jh2RI&t=308s). Maybe not 100% yet, but quickly approaching for most cases.
 2. **Engineering is not.** Engineering judgment is more critical and demanding than before, not less. Picking the right problem, owning the architecture, and knowing when to push back is what actually ships projects. The "lower the I-frame interval" suggestion was wrong for our hardware. The "this might be a hardware limitation" framing was wrong for our diagnosis. Catching either of those took engineering judgment, not coding skill.
 3. **The team math has changed.** A project like this would plausibly have taken a small team (one backend, one frontend, one PM) about four weeks before AI. With Claude Code, solo, two days.
 
