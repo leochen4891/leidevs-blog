@@ -5,7 +5,6 @@ pubDate: '2026-05-08'
 heroImage: ../../assets/camwatch-grid-overlay.png
 ---
 
-> Code: [github.com/leochen4891/camwatch](https://github.com/leochen4891/camwatch)<br>
 > Live: [camwatch.leidevs.com](https://camwatch.leidevs.com/) (Cloudflare Access)
 
 **TL;DR.** Replaced two virtual lines and a stopwatch with trajectory regression on homography-projected ground points. Same calibration effort, lane-independent results: mean absolute error 0.59 mph across nine known-speed drive-bys, with about 6× tighter lane-to-lane spread than the original 2-line method.

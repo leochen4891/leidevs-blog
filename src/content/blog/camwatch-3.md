@@ -5,8 +5,6 @@ pubDate: '2026-05-13'
 heroImage: ../../assets/camwatch-migration-hero.png
 ---
 
-> Code: [github.com/leochen4891/camwatch](https://github.com/leochen4891/camwatch)
-
 **TL;DR.** On the MacBook Air, camwatch couldn't run YOLO detection on the camera's full-resolution main stream in real time, so it detected on a low-resolution substream and used a fragile cross-stream lookup to upgrade the thumbnail to HD, hitting only about 60% success in practice. Moving the service to an Ubuntu desktop with an RTX 3060 lets yolo11(large) run directly on the main stream. The biggest practical payoff: every trigger now ships with a reliably high-resolution thumbnail, which made per-pass vehicle make/model/color identification and a "filter by this vehicle" view in the UI possible for the first time.
 
 [The first camwatch post](/blog/camwatch/) covered building the service end-to-end on a MacBook Air. [The second](/blog/camwatch-2/) rewrote the speed engine. This one removes the hardware bottleneck: a simpler pipeline, and new features the laptop couldn't support.
@@ -114,3 +112,7 @@ Above: the list filtered to "Mercedes-Benz GLE (light)". Seven matches over the 
 1. **Hardware selection is a software-design decision.** Some architectural complexity isn't an interesting design choice. It's the shadow that constrained hardware casts onto your codebase. The cross-stream sync wasn't a feature, it was a workaround for a laptop that couldn't keep up. When the workaround is bigger than the original problem, the cheapest fix is sometimes a different piece of hardware. Engineers tend to think of hardware as fixed and software as the variable. Sometimes flipping that is the right move.
 
 2. **Naive agentic loops have hidden quadratic cost.** Tool results stay in the conversation for the rest of the session, so by row 290 the agent has re-read the first thumbnail 289 times via the cache. Resetting context every iteration (a fresh headless session per tick) is a reliable workaround.
+
+---
+
+Code: [github.com/leochen4891/camwatch](https://github.com/leochen4891/camwatch)

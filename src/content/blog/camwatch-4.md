@@ -2,9 +2,8 @@
 title: "A new camera for low-light hours"
 description: "Captured images were often blurred in the early and late hours. Replaced the existing camera (E1 Outdoor, 1/2.8\" CMOS, f/1.6) with the CX410W (1/1.8\" CMOS, f/1.0), which is designed for low-light performance. Updated the speed measurement to d/t over an accumulating window inside the homography grid. Burned the grid and v=d/t overlay into recorded clips so each is self-contained."
 pubDate: '2026-05-14'
+heroImage: ../../assets/camwatch-night-passes.png
 ---
-
-> Code: [github.com/leochen4891/camwatch](https://github.com/leochen4891/camwatch)
 
 **TL;DR.** Captured images were often blurred in the early and late hours. Replaced the existing camera (E1 Outdoor, 1/2.8" CMOS, f/1.6) with the CX410W (1/1.8" CMOS, f/1.0), which is designed for low-light performance. Updated the speed measurement to d/t over an accumulating window inside the homography grid. Burned the grid and v=d/t overlay into recorded clips so each is self-contained.
 

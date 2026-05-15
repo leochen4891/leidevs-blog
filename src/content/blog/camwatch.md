@@ -5,7 +5,6 @@ pubDate: '2026-05-06'
 heroImage: ../../assets/camwatch-dashboard.png
 ---
 
-> Code: [github.com/leochen4891/camwatch](https://github.com/leochen4891/camwatch)<br>
 > Live: [camwatch.leidevs.com](https://camwatch.leidevs.com/) (Cloudflare Access)
 
 ## Why this had been on the shelf for five years
