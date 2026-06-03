@@ -82,6 +82,16 @@ A good takeaway generalizes beyond this specific project. "Picking the right abs
 - **Attribute precisely**. "The CPU couldn't handle the main stream" is wrong if the bottleneck is the whole laptop (decode, memory bandwidth, single-threading); write "the MacBook Air couldn't handle …". Pick the right noun for the failure mode.
 - **No em dashes or en dashes in prose** (already global). Hyphens between numbers for ranges (`30-40 mph`, `8-day retention`) are fine.
 
+### Gloss jargon on first use
+
+Write for a reader who is technically comfortable but not a specialist in this post's domain. Any term not widely understood outside the field gets a short plain-language gloss on its **first** use, and never again. Keep it to a single parenthetical clause: an anchor, not a tutorial.
+
+- **Always gloss the load-bearing terms** the argument leans on. In the home-network post that meant NAS (a home file server), NAT, subnet, DHCP, NVR, bridge mode, and BSSID. If a reader has to already know the term for a section to make sense, gloss it before that section.
+- **Acronyms get expanded or explained on first use**: BSSID (each radio's unique hardware ID, versus the shared network name), DHCP (the service that hands out addresses), ONVIF (a camera/NVR control protocol). Say what it is at least once.
+- **Skippable asides can keep their jargon.** A clearly optional rabbit-hole paragraph (for example, OS code-signing internals) need not gloss every term, since the reader can skim it without losing the thread.
+- **Do not over-gloss.** One short parenthetical, first use only. Terms a reader infers from immediate context (a "wired" / "wifi" label, "the admin page") need no formal definition.
+- **The test**: reread the draft as someone outside the specialty and flag every term used as if already known. Each flagged term either earns a first-use gloss or moves into a skippable aside.
+
 ### Verify numbers from source
 
 Never assume a metric. If a claim is "about 70% success", query the DB; if it turns out to be 60%, use 60%. Don't invent supporting numbers to make a sentence read better. The reader will trust the post in proportion to how often its specific numbers turn out to be checkable.
