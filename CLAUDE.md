@@ -56,7 +56,7 @@ Order sections by reader logic, not by the order things happened. "What got simp
 
 ### TL;DR
 
-Three-beat shape: **why → brief how → what the reader / user gets**. Lead with the bottleneck or motivation, mention the architectural move in one phrase, end with the visible payoff. Cut implementation details that don't help the reader decide whether to keep reading.
+**Hard limit: 50 words.** Three-beat shape: **why → brief how → what the reader / user gets**. Lead with the bottleneck or motivation, mention the architectural move in one phrase, end with the visible payoff. Cut implementation details that don't help the reader decide whether to keep reading. The frontmatter `description` mirrors the TL;DR text, so it inherits the same limit.
 
 The TL;DR is not a place to enumerate every subsystem you killed or every flag you flipped. If a phrase like "10× the input pixels" or "retires the cross-stream sync layer" is in the TL;DR, ask: does the average reader care, or does this serve the author? When in doubt, cut.
 
